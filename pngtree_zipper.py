@@ -3,19 +3,28 @@ import ctypes
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QMessageBox, QLabel, QVBoxLayout, QSizePolicy, QProgressBar, QStatusBar, QFileDialog, QPushButton
 from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QIcon
 
 import os
+import subprocess
 import zipfile
 from pathlib import Path
 
 import qtawesome as qta
+
+def resource_path(rel):
+    try:
+        base = sys._MEIPASS
+    except Exception:
+        base = Path(__file__).parent
+    return str(Path(base) / rel)
 
 APP_INFO = {
     "name": "Pngtree Zipper",
     "version": "1.0.0",
     "developer": "Desainia Studio",
     "license": "MIT",
-    "about": "A simple helper tool to zip PNG files to submit to Pngtree."
+    "about": "A simple helper tool to zip asset files to submit to Pngtree."
 }
 
 STYLES = {
@@ -48,7 +57,15 @@ class MainWidget(QWidget):
         self.output_label = QLabel("Output: (not set)")
         self.output_label.setAlignment(Qt.AlignLeft)
         self.output_label.setStyleSheet(STYLES['output'])
-        layout.addWidget(self.output_label, alignment=Qt.AlignLeft)
+        self.open_output_button = QPushButton(qta.icon('fa6s.folder-open'), "")
+        self.open_output_button.setFixedSize(28, 28)
+        self.open_output_button.setFlat(True)
+        self.open_output_button.setEnabled(False)
+        self.open_output_button.clicked.connect(self.open_output)
+        col = QVBoxLayout()
+        col.addWidget(self.output_label)
+        col.addWidget(self.open_output_button, alignment=Qt.AlignLeft)
+        layout.addLayout(col)
         self.overall_progress = QProgressBar()
         self.overall_progress.setRange(0, 100)
         self.overall_progress.setValue(0)
@@ -156,8 +173,26 @@ class MainWidget(QWidget):
     def set_output_path(self, path):
         if path:
             self.output_label.setText(f"Output: {path}")
+            self.open_output_button.setEnabled(True)
         else:
             self.output_label.setText("Output: (not set)")
+            self.open_output_button.setEnabled(False)
+
+    def open_output(self):
+        path = None
+        if hasattr(self.window(), 'model'):
+            path = self.window().model.get_output_dir()
+        if not path:
+            print("No output directory set")
+            self.window().statusBar().showMessage("No output directory set", 5000)
+            return
+        if sys.platform.startswith('win'):
+            os.startfile(path)
+            return
+        if sys.platform.startswith('darwin'):
+            subprocess.Popen(['open', path])
+            return
+        subprocess.Popen(['xdg-open', path])
 
 class Model:
     def __init__(self):
@@ -194,7 +229,7 @@ class View(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Pngtree Zipper")
-        self.setWindowIcon(qta.icon('fa6s.leaf', color='green'))
+        self.setWindowIcon(QIcon(resource_path("pngtree_zipper.ico")))
         self.resize(400, 300)
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
         self.menu_bar = self.menuBar()
@@ -220,7 +255,14 @@ class View(QMainWindow):
         self.move(window_size.topLeft())
 
     def show_about(self):
-        QMessageBox.about(self, "About", f"{APP_INFO['name']} v{APP_INFO['version']}\n\nDeveloper: {APP_INFO['developer']}\nLicense: {APP_INFO['license']}\n\n{APP_INFO['about']}")
+        msg = QMessageBox(self)
+        msg.setWindowTitle("About")
+        icon = QIcon(resource_path("pngtree_zipper.ico"))
+        pix = icon.pixmap(64, 64)
+        msg.setIconPixmap(pix)
+        msg.setWindowIcon(icon)
+        msg.setText(f"{APP_INFO['name']} v{APP_INFO['version']}\n\nDeveloper: {APP_INFO['developer']}\nLicense: {APP_INFO['license']}\n\n{APP_INFO['about']}")
+        msg.exec()
 
 class Controller:
     def __init__(self, model, view):

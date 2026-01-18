@@ -32,11 +32,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install PyInstaller
-        run: pip install pyinstaller
+      - name: Install PyInstaller and runtime deps
+        run: pip install pyinstaller PySide6 qtawesome
 
       - name: Build Windows executable
-        run: pyinstaller --onefile --noupx --icon=pngtree.ico --name=Pngtree_Zipper pngtree_zipper.py
+        run: pyinstaller --onefile --noupx --icon=pngtree_zipper.ico --add-data "pngtree_zipper.ico;." --collect-all PySide6 --collect-all qtawesome --name=Pngtree_Zipper pngtree_zipper.py
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -81,11 +81,16 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pyinstaller
+          pip install pyinstaller PySide6 qtawesome
+          sudo apt-get update
+          sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0
 
       - name: Build Linux executable with PyInstaller
         run: |
           pyinstaller --onefile --noupx \
+            --add-data "pngtree_zipper.ico:." \
+            --collect-all PySide6 \
+            --collect-all qtawesome \
             --name=Pngtree_Zipper \
             pngtree_zipper.py
 
