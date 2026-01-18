@@ -8,6 +8,7 @@ from PySide6.QtGui import QIcon
 import os
 import subprocess
 import zipfile
+import webbrowser
 from pathlib import Path
 
 import qtawesome as qta
@@ -24,7 +25,9 @@ APP_INFO = {
     "version": "1.0.0",
     "developer": "Desainia Studio",
     "license": "MIT",
-    "about": "A simple helper tool to zip asset files to submit to Pngtree."
+    "about": "A simple helper tool to zip asset files to submit to Pngtree.",
+    "tiktok": "https://www.tiktok.com/@desainia",
+    "whatsapp": "https://chat.whatsapp.com/CMQvDxpCfP647kBBA6dRn3"
 }
 
 STYLES = {
@@ -62,12 +65,18 @@ class MainWidget(QWidget):
         self.open_output_button.setFlat(True)
         self.open_output_button.setEnabled(False)
         self.open_output_button.clicked.connect(self.open_output)
+        self.wa_button = QPushButton(qta.icon('fa6b.whatsapp', color='white'), "")
+        self.wa_button.setFixedSize(28, 28)
+        self.wa_button.setFlat(True)
+        self.wa_button.setToolTip("Join WhatsApp group")
+        self.wa_button.clicked.connect(self.open_whatsapp)
         self.reset_button = QPushButton(qta.icon('fa6s.broom'), "")
         self.reset_button.setFixedSize(28, 28)
         self.reset_button.setFlat(True)
         btn_row = QHBoxLayout()
         btn_row.addWidget(self.open_output_button)
         btn_row.addWidget(self.reset_button)
+        btn_row.addWidget(self.wa_button)
         btn_row.addStretch()
         col = QVBoxLayout()
         col.addWidget(self.output_label)
@@ -201,6 +210,19 @@ class MainWidget(QWidget):
             return
         subprocess.Popen(['xdg-open', path])
 
+    def open_whatsapp(self):
+        url = APP_INFO.get('whatsapp')
+        if not url:
+            print("No WhatsApp link set")
+            self.window().statusBar().showMessage("No WhatsApp link set", 5000)
+            return
+        try:
+            webbrowser.open(url)
+            self.window().statusBar().showMessage("Opening WhatsApp group...", 5000)
+        except Exception as e:
+            print(f"Error opening WhatsApp link {url}: {e}")
+            self.window().statusBar().showMessage("Failed to open WhatsApp link", 5000)
+
 class Model:
     def __init__(self):
         self._set = set()
@@ -237,7 +259,7 @@ class View(QMainWindow):
         super().__init__()
         self.setWindowTitle("Pngtree Zipper")
         self.setWindowIcon(QIcon(resource_path("pngtree_zipper.ico")))
-        self.resize(400, 300)
+        self.setFixedSize(400, 460)
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
         self.menu_bar = self.menuBar()
         file_menu = self.menu_bar.addMenu("File")
@@ -268,7 +290,12 @@ class View(QMainWindow):
         pix = icon.pixmap(64, 64)
         msg.setIconPixmap(pix)
         msg.setWindowIcon(icon)
-        msg.setText(f"{APP_INFO['name']} v{APP_INFO['version']}\n\nDeveloper: {APP_INFO['developer']}\nLicense: {APP_INFO['license']}\n\n{APP_INFO['about']}")
+        html = f"{APP_INFO['name']} v{APP_INFO['version']}<br><br>Developer: {APP_INFO['developer']}<br>License: {APP_INFO['license']}<br><br>{APP_INFO['about']}<br><br>TikTok: <a href=\"{APP_INFO['tiktok']}\">@desainia</a><br>WhatsApp: <a href=\"{APP_INFO.get('whatsapp')}\">Join group</a>"
+        msg.setTextFormat(Qt.RichText)
+        msg.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        msg.setText(html)
+        for lbl in msg.findChildren(QLabel):
+            lbl.setOpenExternalLinks(True)
         msg.exec()
 
 class Controller:
