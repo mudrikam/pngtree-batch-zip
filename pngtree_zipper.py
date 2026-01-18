@@ -1,7 +1,7 @@
 import sys
 import ctypes
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QMessageBox, QLabel, QVBoxLayout, QSizePolicy, QProgressBar, QStatusBar, QFileDialog, QPushButton
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QMessageBox, QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy, QProgressBar, QStatusBar, QFileDialog, QPushButton
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QIcon
 
@@ -62,9 +62,16 @@ class MainWidget(QWidget):
         self.open_output_button.setFlat(True)
         self.open_output_button.setEnabled(False)
         self.open_output_button.clicked.connect(self.open_output)
+        self.reset_button = QPushButton(qta.icon('fa6s.broom'), "")
+        self.reset_button.setFixedSize(28, 28)
+        self.reset_button.setFlat(True)
+        btn_row = QHBoxLayout()
+        btn_row.addWidget(self.open_output_button)
+        btn_row.addWidget(self.reset_button)
+        btn_row.addStretch()
         col = QVBoxLayout()
         col.addWidget(self.output_label)
-        col.addWidget(self.open_output_button, alignment=Qt.AlignLeft)
+        col.addLayout(btn_row)
         layout.addLayout(col)
         self.overall_progress = QProgressBar()
         self.overall_progress.setRange(0, 100)
@@ -235,7 +242,7 @@ class View(QMainWindow):
         self.menu_bar = self.menuBar()
         file_menu = self.menu_bar.addMenu("File")
         self.import_action = file_menu.addAction(qta.icon('fa6s.file-import'), "Import files")
-        file_menu.addAction(qta.icon('fa6s.folder-open'), "Select Folder")
+        self.select_folder_action = file_menu.addAction(qta.icon('fa6s.folder-open'), "Select Folder")
         self.output_dir_action = file_menu.addAction(qta.icon('fa6s.folder'), "Output Directory")
         self.clear_action = file_menu.addAction(qta.icon('fa6s.trash'), "Clear data")
         exit_action = file_menu.addAction(qta.icon('fa6s.right-from-bracket'), "Exit")
@@ -270,9 +277,11 @@ class Controller:
         self.view = view
         self.view.model = self.model
         self.view.import_action.triggered.connect(self.import_files)
+        self.view.select_folder_action.triggered.connect(self.select_folder)
         self.view.output_dir_action.triggered.connect(self.choose_output_directory)
         self.view.clear_action.triggered.connect(self.clear_data)
         self.view.main_widget.run_button.clicked.connect(self.run_batch_zip)
+        self.view.main_widget.reset_button.clicked.connect(self.clear_data)
 
     def clear_data(self):
         self.model.clear_files()
@@ -292,6 +301,22 @@ class Controller:
         self.view.main_widget.set_overall_progress(0)
         self.view.main_widget.set_file_progress(0)
         self.view.statusBar().showMessage(f"Imported {len(added)} files, skipped {len(skipped)}", 5000)
+
+    def select_folder(self):
+        path = QFileDialog.getExistingDirectory(self.view, "Select folder to import", str(Path.home()))
+        if not path:
+            return
+        p = Path(path)
+        supported_extensions = ('.psd', '.ai', '.eps', '.png', '.jpg')
+        files = [str(f) for f in p.iterdir() if f.is_file() and f.suffix.lower() in supported_extensions]
+        if not files:
+            self.view.statusBar().showMessage("No supported files found in folder", 5000)
+            return
+        added, skipped = self.model.add_files(files)
+        self.view.main_widget.update_stats(self.model.get_all_files())
+        self.view.main_widget.set_overall_progress(0)
+        self.view.main_widget.set_file_progress(0)
+        self.view.statusBar().showMessage(f"Imported {len(added)} files from folder, skipped {len(skipped)}", 5000)
 
     def choose_output_directory(self):
         path = QFileDialog.getExistingDirectory(self.view, "Select output directory", str(Path.home()))
@@ -398,7 +423,8 @@ class Controller:
         self.view.main_widget.run_button.setEnabled(True)
 
 if __name__ == "__main__":
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("PngtreeZipper")
+    if sys.platform.startswith("win"):
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("PngtreeZipper")
     app = QApplication(sys.argv)
     model = Model()
     view = View()
