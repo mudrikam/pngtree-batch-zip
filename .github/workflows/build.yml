@@ -1,4 +1,4 @@
-name: Build Image Tea Installer
+name: Build PNGTree Zipper
 
 on:
   release:
@@ -36,20 +36,20 @@ jobs:
         run: pip install pyinstaller
 
       - name: Build Windows executable
-        run: pyinstaller --onefile --noupx --icon=image_tea.ico --add-data "installer_configs.json;." --name=Image_Tea_Installer image_tea_installer.py
+        run: pyinstaller --onefile --noupx --icon=pngtree.ico --add-data "installer_configs.json;." --name=Pngtree_Zipper pngtree_zipper.py
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Image-Tea-Installer-Windows
-          path: dist/Image_Tea_Installer.exe
+          name: PNGTree-Zipper-Windows
+          path: dist/Pngtree_Zipper.exe
           if-no-files-found: error
 
       - name: Upload to Release
         if: github.event_name == 'release' || github.event_name == 'workflow_run'
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/Image_Tea_Installer.exe
+          files: dist/Pngtree_Zipper.exe
           tag_name: ${{ github.event_name == 'workflow_run' && 'latest' || github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,7 +58,7 @@ jobs:
         if: always()
         uses: geekyeggo/delete-artifact@v5
         with:
-          name: Image-Tea-Installer-Windows
+          name: PNGTree-Zipper-Windows
           failOnError: false
 
   build-linux:
@@ -89,8 +89,8 @@ jobs:
         run: |
           pyinstaller --onedir --noupx \
             --add-data "installer_configs.json:." \
-            --name=Image_Tea_Installer \
-            image_tea_installer.py
+            --name=Pngtree_Zipper \
+            pngtree_zipper.py
 
       - name: Download appimagetool
         run: |
@@ -104,19 +104,19 @@ jobs:
           mkdir -p AppDir/usr/share/applications
           
           # Copy the PyInstaller bundle
-          cp -r dist/Image_Tea_Installer/* AppDir/usr/bin/
+          cp -r dist/Pngtree_Zipper/* AppDir/usr/bin/
           
           # Copy icon
-          cp image-tea.png AppDir/usr/share/icons/hicolor/256x256/apps/image-tea.png
-          cp image-tea.png AppDir/image-tea.png
+          cp pngtree-zipper.png AppDir/usr/share/icons/hicolor/256x256/apps/pngtree-zipper.png
+          cp pngtree-zipper.png AppDir/pngtree-zipper.png
           
           # Create .desktop file
-          cat > AppDir/usr/share/applications/image-tea-installer.desktop << 'EOF'
+          cat > AppDir/usr/share/applications/pngtree-zipper.desktop << 'EOF'
           [Desktop Entry]
           Type=Application
-          Name=Image Tea Installer
-          Exec=Image_Tea_Installer
-          Icon=image-tea
+          Name=PNGTree Zipper
+          Exec=Pngtree_Zipper
+          Icon=pngtree-zipper
           Categories=Utility;
           Terminal=true
           EOF
@@ -127,34 +127,34 @@ jobs:
           SELF=$(readlink -f "$0")
           HERE=${SELF%/*}
           export PATH="${HERE}/usr/bin:${PATH}"
-          exec "${HERE}/usr/bin/Image_Tea_Installer" "$@"
+          exec "${HERE}/usr/bin/Pngtree_Zipper" "$@"
           EOF
           chmod +x AppDir/AppRun
           
           # Copy desktop file to root
-          cp AppDir/usr/share/applications/image-tea-installer.desktop AppDir/
+          cp AppDir/usr/share/applications/pngtree-zipper.desktop AppDir/
 
       - name: Create AppImage
         env:
           ARCH: x86_64
         run: |
-          APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool-x86_64.AppImage AppDir Image_Tea_Installer-x86_64.AppImage
+          APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool-x86_64.AppImage AppDir Pngtree_Zipper-x86_64.AppImage
 
       - name: Make AppImage executable
-        run: chmod +x Image_Tea_Installer-x86_64.AppImage
+        run: chmod +x Pngtree_Zipper-x86_64.AppImage
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Image-Tea-Installer-Linux
-          path: Image_Tea_Installer-x86_64.AppImage
+          name: PNGTree-Zipper-Linux
+          path: Pngtree_Zipper-x86_64.AppImage
           if-no-files-found: error
 
       - name: Upload to Release
         if: github.event_name == 'release' || github.event_name == 'workflow_run'
         uses: softprops/action-gh-release@v2
         with:
-          files: Image_Tea_Installer-x86_64.AppImage
+          files: Pngtree_Zipper-x86_64.AppImage
           tag_name: ${{ github.event_name == 'workflow_run' && 'latest' || github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -163,5 +163,5 @@ jobs:
         if: always()
         uses: geekyeggo/delete-artifact@v5
         with:
-          name: Image-Tea-Installer-Linux
+          name: PNGTree-Zipper-Linux
           failOnError: false
